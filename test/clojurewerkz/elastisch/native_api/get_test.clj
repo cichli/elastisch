@@ -88,4 +88,6 @@
     (let [mget-result (doc/multi-get conn index-name mapping-type
                                      [{:_id "1"} {:_id "2"}])]
       (is (= fx/person-jack (source-from (first mget-result))))
-      (is (= fx/person-mary (source-from (second mget-result)))))))
+      (is (= fx/person-mary (source-from (second mget-result)))))
+
+    (is (= '() (doc/multi-get conn "non-existent-index" "non-existent-mapping-type" [{:_id "foo"}])))))

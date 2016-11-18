@@ -17,7 +17,9 @@
   (:require [clojure.walk :as wlk]
             [cheshire.core :as json]
             [clojurewerkz.elastisch.native.conversion-stats :as cnv-stats])
-  (:import [org.elasticsearch.common.settings Settings Settings$Builder]
+  (:import [org.elasticsearch ElasticsearchException]
+           [org.elasticsearch.rest RestStatus]
+           [org.elasticsearch.common.settings Settings Settings$Builder]
            [org.elasticsearch.common.transport
             TransportAddress InetSocketTransportAddress LocalTransportAddress]
            java.util.Map
@@ -370,14 +372,16 @@
 
 (defn ^IPersistentMap multi-get-item-response->map
   [^MultiGetItemResponse i]
-  (let [r  (.getResponse i)
-        s  (convert-source-result (.getSourceAsMap r))]
+   (if-let [r  (.getResponse i)]
     {:exists   (.isExists r)
      :_index   (.getIndex r)
      :_type    (.getType r)
      :_id      (.getId r)
      :_version (.getVersion r)
-     :_source  s}))
+     :_source  (convert-source-result (.getSourceAsMap r))}
+    (let [^ElasticsearchException e (.getFailure (.getFailure i))]
+      (when-not (= RestStatus/NOT_FOUND (.status e))
+        (throw e)))))
 
 (defn multi-get-response->seq
   [^MultiGetResponse r]
